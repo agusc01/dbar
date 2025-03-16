@@ -1,0 +1,5 @@
+#!/bin/sh
+
+v=$(amixer get Master | grep -o '[0-9]*%' | head -n 1 | tr -d '%')
+
+echo " $v%"
