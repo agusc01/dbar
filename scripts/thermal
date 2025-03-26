@@ -1,16 +1,7 @@
 #!/bin/sh
 
-thermal_zone="/sys/class/thermal/thermal_zone0/temp"
-
-if [ ! -f "$thermal_zone" ]; then
-    echo "X °C"
-    exit 1
-fi
-
 temperature_icon=''
-
-temperature=$(cat "$thermal_zone")
-
+temperature=$(cat "/sys/class/thermal/thermal_zone0/temp")
 temperature_c=$(echo "scale=1; $temperature / 1000" | bc)
 
-echo "$temperature_icon$temperature_c°C"
+echo "$temperature_icon $temperature_c°C"

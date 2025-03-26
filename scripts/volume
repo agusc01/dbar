@@ -1,5 +1,6 @@
 #!/bin/sh
 
-v=$(amixer get Master | grep -o '[0-9]*%' | head -n 1 | tr -d '%')
+volume=$(amixer get Master | grep -o '[0-9]*%' | head -n 1 | tr -d '%')
+volume_icon=""
 
-echo "$v%"
+echo "$volume_icon $volume%"

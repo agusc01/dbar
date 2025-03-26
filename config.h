@@ -15,5 +15,5 @@ static const Bar dbar[] = {
 };
 
 //sets delimeter between status commands. NULL character ('\0') means no delimeter.
-static char delim[] = "  ";
-static unsigned int delimLen = 2;
+static char delim[] = " | ";
+static unsigned int delimLen = 3;

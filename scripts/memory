@@ -10,6 +10,7 @@ used_swap=$(free -m | awk 'NR==3{print $3}')
 
 used_swap_gb=$(echo "scale=3; $used_swap / 1024" | bc)
 
+memory=$(free -h | awk '/^Mem/ { print $3 }' | sed s/i//g)
 memory_icon=''
 
-echo "${memory_icon}${used_ram_gb}|${used_swap_gb}"
+echo "$memory_icon $memory"
