@@ -1,4 +1,6 @@
 #!/bin/sh
 
 date="$(date +'%A %d/%m/%Y %H:%M')"
+# uptime="$(uptime -p)"
+# echo "$date ($uptime)"
 echo "$date"
