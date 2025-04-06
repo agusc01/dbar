@@ -8,6 +8,13 @@ if [ "$battery_status" = 'Charging' ]; then
     battery_symbol=''
 elif [ "$battery_status" = 'Discharging' ]; then
     battery_symbol=''
+    if [ "$battery_capacity" -lt 10 ]; then
+        fish -c 'setbrightness 30'
+        mpg123 ~/.config/dbar/sounds/mayday.mp3 &
+    elif [ "$battery_capacity" -lt 15 ]; then
+        fish -c 'setbrightness 20'
+        mpg123 ~/.config/dbar/sounds/hey-mate.mp3 &
+    fi
 elif [ "$battery_status" = 'Full' ]; then
     battery_symbol=''
 fi
