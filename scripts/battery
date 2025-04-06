@@ -9,11 +9,13 @@ if [ "$battery_status" = 'Charging' ]; then
 elif [ "$battery_status" = 'Discharging' ]; then
     battery_symbol=''
     if [ "$battery_capacity" -lt 10 ]; then
-        fish -c 'setbrightness 30'
-        mpg123 ~/.config/dbar/sounds/mayday.mp3 &
+        fish -c 'setbrightness 25'
+        # TODO use mpg123, for now I'm not using because crash the computer
+        # mpg123 ~/.config/dbar/sounds/mayday.mp3 &
     elif [ "$battery_capacity" -lt 15 ]; then
-        fish -c 'setbrightness 20'
-        mpg123 ~/.config/dbar/sounds/hey-mate.mp3 &
+        fish -c 'setbrightness 15'
+        # TODO use mpg123, for now I'm not using because crash the computer
+        # mpg123 ~/.config/dbar/sounds/hey-mate.mp3 &
     fi
 elif [ "$battery_status" = 'Full' ]; then
     battery_symbol=''
