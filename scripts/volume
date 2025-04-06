@@ -3,4 +3,12 @@
 volume=$(amixer get Master | grep -o '[0-9]*%' | head -n 1 | tr -d '%')
 volume_icon=""
 
-echo "$volume_icon $volume%"
+mute_status=$(amixer get Master | grep -o off)
+
+if [ -n "$mute_status" ]; then
+    volume_icon=""
+else
+    volume_icon=""
+fi
+
+echo "$volume_icon $volume"
