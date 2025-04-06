@@ -1,6 +1,10 @@
 #!/bin/sh
 
-date="$(date +'%A %d/%m/%Y %H:%M')"
+# date="$(date +'%A %d/%m/%Y')"
+# date="$(date +'%A %d/%m')"
+# date="$(date +'%A %d %B %m')"
+date="$(date +'%A %d %B')"
+clock="$(date +'%H:%M')"
 # uptime="$(uptime -p)"
 # echo "$date ($uptime)"
-echo "$date"
+echo " $date |  $clock"
