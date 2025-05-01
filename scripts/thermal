@@ -1,7 +1,0 @@
-#!/bin/sh
-
-temperature_icon=''
-temperature=$(cat "/sys/class/thermal/thermal_zone0/temp")
-temperature_c=$(echo "scale=1; $temperature / 1000" | bc)
-
-echo "$temperature_icon $temperature_c°C"

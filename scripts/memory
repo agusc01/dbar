@@ -1,6 +1,0 @@
-#!/bin/sh
-
-memory=$(free -h | awk '/^Mem/ { print $3 }' | sed s/i//g)
-memory_icon=''
-
-echo "$memory_icon $memory"

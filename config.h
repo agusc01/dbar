@@ -1,4 +1,4 @@
-#define SC(ruta) "$HOME/.config/dbar/scripts/" #ruta
+#define SC(path) "$HOME/.bash_scripts/dbar/" #path
 
 //Modify this file to change what commands output to your statusbar, and recompile using the make command.
 static const Bar dbar[] = {
