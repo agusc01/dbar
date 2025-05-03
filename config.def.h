@@ -11,6 +11,7 @@ static const Bar dbar[] = {
     {"",    SC("cpu"),            5,             0  },
     {"",    SC("memory"),         5,             0  },
     {"",    SC("date"),          50,             0  },
+    {"",    SC("uptime"),        50,             0  },
     {"",    SC("battery"),       60,             0  },
 };
 
