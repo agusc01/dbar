@@ -4,6 +4,8 @@
 static const Bar dbar[] = {
     // TODO: use Update Signal. For now brightness & sound use refreshdbar function of fish
     //Icon  Command Update     Interval   Update Signal
+    {"",    SC("updates"),        0,             0  },
+    {"",    SC("bluetooth"),     60,             0  },
     {"",    SC("wifi"),          60,             0  },
     {"",    SC("brightness"),     0,             0  },
     {"",    SC("volume"),         0,             0  },
