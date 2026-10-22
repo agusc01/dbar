@@ -53,9 +53,30 @@ printf '%s' "$preview" | grep -q 'RAM '
 sh "$repository/dbar" colors-off >/dev/null
 [ "$(cat "$HOME/.config/dbar/color-mode")" = off ]
 monochrome=$(sh "$repository/dbar" preview)
+case "$monochrome" in
+    "CPU -- · RAM "*" · "*)
+        ;;
+    *)
+        echo 'Error: Unexpected monochrome status formatting.' >&2
+        exit 1
+        ;;
+esac
+
+# Monochrome mode must not emit control bytes, including color reset codes.
+if printf '%s' "$monochrome" | LC_ALL=C grep -q '[[:cntrl:]]'; then
+    echo 'Error: Monochrome mode contains control bytes.' >&2
+    exit 1
+fi
+
 sh "$repository/dbar" colors-on >/dev/null
 colored=$(sh "$repository/dbar" preview)
 [ "$monochrome" != "$colored" ]
+
+# Colored mode must keep using the custom dwm control-byte palette.
+if ! printf '%s' "$colored" | LC_ALL=C grep -q '[[:cntrl:]]'; then
+    echo 'Error: Colored mode has no color control bytes.' >&2
+    exit 1
+fi
 
 # Launch the daemon and ensure duplicate starts reuse the same PID.
 "$repository/commands/dbar_start" >/dev/null

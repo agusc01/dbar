@@ -32,18 +32,31 @@ load_color_mode() {
     esac
 }
 
-# Render cached measurements using the selected color mode.
+# Render concise status values; monochrome mode must contain no color bytes.
 render_bar() {
     load_color_mode
 
-    cpu_text="${DBAR_NORMAL}CPU --"
+    cpu_value="--"
     if [ "$CPU_PERCENT" -ge 0 ]; then
-        cpu_color=$(dbar_color_for "$CPU_PERCENT" "$CPU_WARNING" "$CPU_CRITICAL")
-        cpu_text="${cpu_color}CPU ${CPU_PERCENT}%"
+        cpu_value="${CPU_PERCENT}%"
     fi
 
+    cpu_text="CPU $cpu_value"
+    memory_text="RAM ${MEMORY_PERCENT}%"
+    separator=" · "
+
+    if [ "$DBAR_COLOR_MODE" = "off" ]; then
+        output="${cpu_text}${separator}${memory_text}${separator}${CLOCK}"
+        return
+    fi
+
+    cpu_color=$DBAR_NORMAL
+    if [ "$CPU_PERCENT" -ge 0 ]; then
+        cpu_color=$(dbar_color_for "$CPU_PERCENT" "$CPU_WARNING" "$CPU_CRITICAL")
+    fi
     memory_color=$(dbar_color_for "$MEMORY_PERCENT" "$MEMORY_WARNING" "$MEMORY_CRITICAL")
-    output="${cpu_text}${DBAR_NORMAL}  ${memory_color}RAM ${MEMORY_PERCENT}%${DBAR_NORMAL}  ${CLOCK}"
+
+    output="${cpu_color}${cpu_text}${DBAR_NORMAL}${separator}${memory_color}${memory_text}${DBAR_NORMAL}${separator}${CLOCK}"
 }
 
 # Print a single sample without requiring a graphical session.
