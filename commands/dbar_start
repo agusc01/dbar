@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+# Launch the corresponding dbar action.
+exec "$HOME/.config/dbar/dbar" "start"
