@@ -1,0 +1,230 @@
+#!/bin/sh
+set -eu
+
+# The repository lives at ~/.config/dbar when installed normally.
+DBAR_HOME=${DBAR_HOME:-"$HOME/.config/dbar"}
+mode_file="$DBAR_HOME/color-mode"
+runtime_directory="${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/dbar"
+pid_file="$runtime_directory/dbar.pid"
+lock_directory="$runtime_directory/lock"
+
+# Only trust a PID if it still belongs to this specific bar executable.
+running_pid() {
+    [ -f "$pid_file" ] && [ ! -L "$pid_file" ] || return 1
+    IFS= read -r pid < "$pid_file" || return 1
+    case "$pid" in
+        ''|0|*[!0-9]*) return 1 ;;
+    esac
+    kill -0 "$pid" 2>/dev/null || return 1
+    [ -r "/proc/$pid/cmdline" ] || return 1
+    tr '\000' '\n' < "/proc/$pid/cmdline" | grep -Fx "$DBAR_HOME/dbar" >/dev/null 2>&1
+}
+
+# Read the persisted color mode, defaulting to color when unset.
+load_color_mode() {
+    DBAR_COLOR_MODE=on
+    if [ -f "$mode_file" ] && [ ! -L "$mode_file" ]; then
+        IFS= read -r DBAR_COLOR_MODE < "$mode_file" || :
+    fi
+    case "$DBAR_COLOR_MODE" in
+        on|off) ;;
+        *) DBAR_COLOR_MODE=on ;;
+    esac
+}
+
+# Render cached measurements using the selected color mode.
+render_bar() {
+    load_color_mode
+
+    cpu_text="${DBAR_NORMAL}CPU --"
+    if [ "$CPU_PERCENT" -ge 0 ]; then
+        cpu_color=$(dbar_color_for "$CPU_PERCENT" "$CPU_WARNING" "$CPU_CRITICAL")
+        cpu_text="${cpu_color}CPU ${CPU_PERCENT}%"
+    fi
+
+    memory_color=$(dbar_color_for "$MEMORY_PERCENT" "$MEMORY_WARNING" "$MEMORY_CRITICAL")
+    output="${cpu_text}${DBAR_NORMAL}  ${memory_color}RAM ${MEMORY_PERCENT}%${DBAR_NORMAL}  ${CLOCK}"
+}
+
+# Print a single sample without requiring a graphical session.
+preview_bar() {
+    update_cpu
+    update_memory
+    update_clock
+    render_bar
+    printf '%s\n' "$output"
+}
+
+# Drop runtime files only if they belong to our process.
+cleanup() {
+    if [ -f "$pid_file" ] && [ ! -L "$pid_file" ]; then
+        IFS= read -r recorded_pid < "$pid_file" || recorded_pid=""
+        if [ "$recorded_pid" = "$$" ]; then
+            rm -v "$pid_file"
+        fi
+    fi
+    if [ -d "$lock_directory" ] && [ ! -L "$lock_directory" ]; then
+        rmdir -v "$lock_directory" 2>/dev/null || :
+    fi
+}
+
+# Run the bar in the foreground (used by dbar_start).
+run_bar() {
+    if [ -z "${DISPLAY:-}" ]; then
+        echo 'Error: dbar requires an X11 session (DISPLAY is unset).' >&2
+        exit 1
+    fi
+    if ! command -v xsetroot >/dev/null 2>&1; then
+        echo 'Error: xsetroot is not installed.' >&2
+        exit 1
+    fi
+
+    mkdir -vp "$runtime_directory"
+    if ! mkdir "$lock_directory" 2>/dev/null; then
+        if running_pid; then
+            echo 'Error: dbar is already running.' >&2
+        else
+            echo "Error: Stale or busy runtime lock: $lock_directory" >&2
+        fi
+        exit 1
+    fi
+    if [ -e "$pid_file" ] || [ -L "$pid_file" ]; then
+        if running_pid; then
+            rmdir -v "$lock_directory" || :
+            echo 'Error: dbar is already running.' >&2
+            exit 1
+        fi
+        if [ -L "$pid_file" ] || [ ! -f "$pid_file" ]; then
+            rmdir -v "$lock_directory" || :
+            echo 'Error: Unexpected PID file. No changes made.' >&2
+            exit 1
+        fi
+    fi
+
+    printf '%s\n' "$$" > "$pid_file"
+    trap 'cleanup' 0
+    trap 'exit 0' HUP INT TERM
+    trap 'redraw_requested=1' USR1
+
+    . "$DBAR_HOME/config.sh"
+    . "$DBAR_HOME/lib/colors.sh"
+    . "$DBAR_HOME/modules/cpu.sh"
+    . "$DBAR_HOME/modules/memory.sh"
+    . "$DBAR_HOME/modules/clock.sh"
+
+    update_cpu
+    update_memory
+    update_clock
+    previous_output=""
+    redraw_requested=1
+    seconds=0
+
+    while :; do
+        render_bar
+        if [ "$redraw_requested" -eq 1 ] || [ "$output" != "$previous_output" ]; then
+            xsetroot -name "$output"
+            previous_output=$output
+            redraw_requested=0
+        fi
+        # Signals can interrupt sleep; do not let set -e stop the daemon.
+        sleep 1 || :
+        seconds=$((seconds + 1))
+        if [ $((seconds % CPU_INTERVAL)) -eq 0 ]; then
+            update_cpu
+        fi
+        if [ $((seconds % MEMORY_INTERVAL)) -eq 0 ]; then
+            update_memory
+        fi
+        if [ $((seconds % CLOCK_INTERVAL)) -eq 0 ]; then
+            update_clock
+        fi
+    done
+}
+
+start_bar() {
+    if [ -z "${DISPLAY:-}" ]; then
+        echo 'Error: Start dbar from an X11 terminal.' >&2
+        exit 1
+    fi
+    if ! command -v xsetroot >/dev/null 2>&1; then
+        echo 'Error: xsetroot is not installed.' >&2
+        exit 1
+    fi
+    if running_pid; then
+        echo "dbar is already running (PID $pid)."
+        exit 0
+    fi
+
+    mkdir -vp "$runtime_directory"
+    nohup "$DBAR_HOME/dbar" run </dev/null > "$runtime_directory/dbar.log" 2>&1 &
+    sleep 1
+    if running_pid; then
+        echo "dbar started (PID $pid)."
+    else
+        echo "Error: Could not start dbar. Check $runtime_directory/dbar.log" >&2
+        exit 1
+    fi
+}
+
+stop_bar() {
+    if running_pid; then
+        kill -TERM "$pid"
+        echo "Stopping dbar (PID $pid)."
+    else
+        echo 'dbar is not running.'
+    fi
+}
+
+refresh_bar() {
+    if running_pid; then
+        kill -USR1 "$pid"
+        echo 'dbar refresh requested.'
+    else
+        echo 'dbar is not running.' >&2
+        exit 1
+    fi
+}
+
+set_colors() {
+    if [ -L "$mode_file" ] || { [ -e "$mode_file" ] && [ ! -f "$mode_file" ]; }; then
+        echo 'Error: Unexpected color-mode file. No changes made.' >&2
+        exit 1
+    fi
+    printf '%s\n' "$1" > "$mode_file"
+    echo "dbar colors: $1"
+    if running_pid; then
+        kill -USR1 "$pid"
+    fi
+}
+
+# Process control can run without X11; only 'run' and 'start' require a display.
+operation=${1:-help}
+case "$operation" in
+    run) run_bar ;;
+    preview)
+        . "$DBAR_HOME/config.sh"
+        . "$DBAR_HOME/lib/colors.sh"
+        . "$DBAR_HOME/modules/cpu.sh"
+        . "$DBAR_HOME/modules/memory.sh"
+        . "$DBAR_HOME/modules/clock.sh"
+        preview_bar
+        ;;
+    start) start_bar ;;
+    stop) stop_bar ;;
+    restart) stop_bar; sleep 1; start_bar ;;
+    status)
+        if running_pid; then
+            echo "dbar is running (PID $pid)."
+        else
+            echo 'dbar is not running.'
+            exit 1
+        fi
+        ;;
+    refresh) refresh_bar ;;
+    colors-on) set_colors on ;;
+    colors-off) set_colors off ;;
+    *)
+        printf 'Usage: dbar {start|stop|restart|status|refresh|colors-on|colors-off|preview}\n' >&2
+        exit 1
+        ;;
+esac
