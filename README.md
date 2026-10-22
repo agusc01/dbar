@@ -29,7 +29,7 @@ The color mode is stored in `~/.config/dbar/color-mode` and survives restarts. C
 
 You can test output in a plain terminal using `sh ~/.config/dbar/dbar preview`.
 
-The compact status is `CPU 15% · RAM 40% · 14:45` (example values). The color sequences are designed for the custom `agusc01/dwm` statuscolors patch. Module sample intervals and thresholds are in `config.sh`; its CPU module uses `/proc/stat` and memory uses `/proc/meminfo`. Runtime files live in `${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/dbar`.
+The compact status is `CPU 15% · RAM 40% · 14:45` (example values). The color sequences are designed for the custom `agusc01/dwm` statuscolors patch. Module sample intervals and thresholds are in `config.sh`; its CPU module uses `/proc/stat` and memory uses `/proc/meminfo`. Runtime files live in `${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/dbar`. If a session ends abruptly, startup can recover an empty, unchanged, abandoned lock after a short safety check. A live process or nonempty lock is never removed automatically; inspect `dbar.log` if startup still fails.
 
 ## Tests
 

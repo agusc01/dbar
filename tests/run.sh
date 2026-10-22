@@ -78,8 +78,13 @@ if ! printf '%s' "$colored" | LC_ALL=C grep -q '[[:cntrl:]]'; then
     exit 1
 fi
 
-# Launch the daemon and ensure duplicate starts reuse the same PID.
+# An earlier session may leave an empty lock and a dead PID behind.
+mkdir -p "$HOME/.cache/dbar/lock"
+printf '%s\n' '99999999' > "$HOME/.cache/dbar/dbar.pid"
+
+# Launch the daemon, recover the abandoned lock, and reuse the active PID.
 "$repository/commands/dbar_start" >/dev/null
+[ "$(cat "$HOME/.cache/dbar/dbar.pid")" != 99999999 ]
 sh "$repository/dbar" status >/dev/null
 pid_before=$(cat "$HOME/.cache/dbar/dbar.pid")
 "$repository/commands/dbar_start" >/dev/null
@@ -109,5 +114,16 @@ if sh "$repository/dbar" status >/dev/null 2>&1; then
     echo 'Error: dbar still appears to be running.' >&2
     exit 1
 fi
+
+# A nonempty lock is never erased, even if no dbar process is active.
+mkdir -p "$HOME/.cache/dbar/lock"
+printf 'preserve\n' > "$HOME/.cache/dbar/lock/protected"
+if sh "$repository/dbar" run >/dev/null 2>&1; then
+    echo 'Error: dbar started despite a nonempty runtime lock.' >&2
+    exit 1
+fi
+[ "$(cat "$HOME/.cache/dbar/lock/protected")" = preserve ]
+rm -v "$HOME/.cache/dbar/lock/protected"
+rmdir -v "$HOME/.cache/dbar/lock"
 
 printf '%s\n' 'All dbar smoke tests passed.' 

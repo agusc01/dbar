@@ -81,6 +81,57 @@ cleanup() {
     fi
 }
 
+# Claim the lock atomically, recovering only unchanged, empty, abandoned locks.
+acquire_lock() {
+    if mkdir "$lock_directory" 2>/dev/null; then
+        return 0
+    fi
+
+    if running_pid; then
+        echo 'Error: dbar is already running.' >&2
+        return 1
+    fi
+    if [ -L "$lock_directory" ] || [ ! -d "$lock_directory" ]; then
+        echo "Error: Unexpected runtime lock: $lock_directory" >&2
+        return 1
+    fi
+
+    # Remember the directory identity so a replacement is never treated as stale.
+    old_lock=$(stat -c '%d:%i:%Y' "$lock_directory" 2>/dev/null) || return 1
+    lock_modified=${old_lock##*:}
+    case "$lock_modified" in
+        ''|*[!0-9]*)
+            echo 'Error: Cannot verify the runtime lock age.' >&2
+            return 1
+            ;;
+    esac
+
+    # Allow another starting process time to record its PID before recovery.
+    now=$(date +%s)
+    if [ $((now - lock_modified)) -lt 3 ]; then
+        sleep 3
+    fi
+    if running_pid; then
+        echo 'Error: dbar is already running.' >&2
+        return 1
+    fi
+    if [ "$(stat -c '%d:%i:%Y' "$lock_directory" 2>/dev/null)" != "$old_lock" ]; then
+        echo 'Error: Runtime lock changed during recovery.' >&2
+        return 1
+    fi
+
+    # rmdir refuses nonempty directories; never delete an unknown owner's files.
+    if ! rmdir -v "$lock_directory" 2>/dev/null; then
+        echo "Error: Nonempty or busy runtime lock: $lock_directory" >&2
+        return 1
+    fi
+    if ! mkdir "$lock_directory" 2>/dev/null; then
+        echo 'Error: Another dbar instance acquired the runtime lock.' >&2
+        return 1
+    fi
+    echo 'Recovered abandoned dbar runtime lock.' >&2
+}
+
 # Run the bar in the foreground (used by dbar_start).
 run_bar() {
     if [ -z "${DISPLAY:-}" ]; then
@@ -93,12 +144,7 @@ run_bar() {
     fi
 
     mkdir -vp "$runtime_directory"
-    if ! mkdir "$lock_directory" 2>/dev/null; then
-        if running_pid; then
-            echo 'Error: dbar is already running.' >&2
-        else
-            echo "Error: Stale or busy runtime lock: $lock_directory" >&2
-        fi
+    if ! acquire_lock; then
         exit 1
     fi
     if [ -e "$pid_file" ] || [ -L "$pid_file" ]; then
@@ -170,13 +216,24 @@ start_bar() {
 
     mkdir -vp "$runtime_directory"
     nohup "$DBAR_HOME/dbar" run </dev/null > "$runtime_directory/dbar.log" 2>&1 &
-    sleep 1
-    if running_pid; then
-        echo "dbar started (PID $pid)."
-    else
-        echo "Error: Could not start dbar. Check $runtime_directory/dbar.log" >&2
-        exit 1
-    fi
+    spawned_pid=$!
+
+    # Recovery may briefly delay startup; do not report failure too early.
+    attempt=0
+    while [ "$attempt" -lt 6 ]; do
+        sleep 1
+        if running_pid; then
+            echo "dbar started (PID $pid)."
+            return 0
+        fi
+        if ! kill -0 "$spawned_pid" 2>/dev/null; then
+            break
+        fi
+        attempt=$((attempt + 1))
+    done
+
+    echo "Error: Could not start dbar. Check $runtime_directory/dbar.log" >&2
+    exit 1
 }
 
 stop_bar() {
