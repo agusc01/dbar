@@ -35,10 +35,20 @@ Temperature reads CPU-specific sensors from `/sys/class/hwmon` or CPU thermal zo
 
 Brightness displays as `󰃠 75%` between battery and ALSA volume, using the first readable backlight in `/sys/class/backlight`. It prefers `actual_brightness` and falls back to `brightness`, rounds to a whole percent, and is hidden when no valid backlight is present (as may happen in virtual machines). Low brightness is not an alert, so this segment has no warning colors. It refreshes every 5 seconds. No new packages or daemons are needed.
 
+## Temporary per-segment click debugging
+
+This feature requires the companion `agusc01/dwm` segment-click changes. The root-window status contains invisible `@{x}` module markers that dwm removes before drawing. `dbar preview` remains ordinary, untagged text. Colored and monochrome status both support clicks. Only visible segments receive click targets.
+
+Click a segment with the left, middle or right mouse button to open `st`, print the identified module and button, and keep the terminal open until Enter is pressed. No system settings are changed. The mouse wheel is deliberately not bound, so scrolling cannot open a flood of terminals.
+
+The temporary module IDs are `c=cpu`, `m=ram`, `n=wifi` (network), `b=battery`, `l=brightness`, `v=volume`, `d=disk`, `t=temperature`, `h=bluetooth`, and `k=clock`. The network segment keeps the stable `n` ID when switching between Wi-Fi, Ethernet and offline status. To test the dispatcher manually from X11, run `sh ~/.config/dbar/dbar click n 1`. The window prints `wifi` and `Mouse button: left`. These are *diagnostic placeholders*; configurable actions will be added later.
+
+Install the updated dwm fork before enabling this dbar branch. Older dwm versions do not recognize module markers and may display them literally. The exact text width and hit boxes are calculated by the same new dwm parser.
+
 ## Tests
 
 ```sh
 sh tests/run.sh
 ```
 
-Tests use a mocked `xsetroot` and simulated network routes, power supply entries, ALSA mixer responses, disk usage, CPU sensor files, Bluetooth states and backlight readings, and do not require a graphical session. The tests copy only the required runtime files to isolated temporary directories (never `.git`), clean them up without interactive deletion prompts, and preserve the checkout's `color-mode` setting.
+Tests use a mocked `xsetroot` and simulated network routes, power supply entries, ALSA mixer responses, disk usage, CPU sensor files, Bluetooth states backlight readings, and mocked debug-click terminals, and do not require a graphical session. The tests copy only the required runtime files to isolated temporary directories (never `.git`), clean them up without interactive deletion prompts, and preserve the checkout's `color-mode` setting.
