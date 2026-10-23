@@ -35,7 +35,34 @@ Temperature reads CPU-specific sensors from `/sys/class/hwmon` or CPU thermal zo
 
 Brightness displays as `󰃠 75%` between battery and ALSA volume, using the first readable backlight in `/sys/class/backlight`. It prefers `actual_brightness` and falls back to `brightness`, rounds to a whole percent, and is hidden when no valid backlight is present (as may happen in virtual machines). Low brightness is not an alert, so this segment has no warning colors. It refreshes every 5 seconds. No new packages or daemons are needed.
 
-## USB storage and printers
+## Configure modules and their order
+
+All 12 modules are enabled by default, preserving the original order and behavior. To customize your bar, copy the tracked example into a **local, Git-ignored** config file:
+
+```sh
+cd ~/.config/dbar
+cp -n config.local.example.sh config.local.sh
+${EDITOR:-vi} config.local.sh
+dbar_restart
+```
+
+The configuration in `config.local.sh` is sourced after the tracked defaults in `config.sh`, so existing icons, colors, thresholds and sampling intervals remain available. The personal file is ignored by Git and is never overwritten by `git pull` or the installer. Do not put private overrides in the tracked `config.sh`. A symlink is intentionally rejected for the local configuration.
+
+One whitespace-separated `DBAR_MODULES` list controls **both** which modules are active and their visible ordering. The example uses one shell assignment per module to make reordering a move and disabling a comment:
+
+```sh
+DBAR_MODULES=''
+DBAR_MODULES="$DBAR_MODULES network"
+DBAR_MODULES="$DBAR_MODULES volume"
+# DBAR_MODULES="$DBAR_MODULES printers"
+DBAR_MODULES="$DBAR_MODULES clock"
+```
+
+Available module names: `cpu`, `memory`, `network`, `battery`, `brightness`, `volume`, `disk`, `temperature`, `bluetooth`, `usb`, `printers`, and `clock`. The list can be empty to hide the entire status text. Disabling a module means it is **never sampled or rendered**; no background printer, Bluetooth or other queries run for it. Module-specific intervals are preserved, and only intervals for enabled modules are validated. An enabled interval must be an ordinary integer from 1 to 86400 seconds (without leading zeros). Unknown or duplicate names and invalid active intervals abort `preview` or startup with an error before any status process is created.
+
+Use `sh ~/.config/dbar/dbar preview` to inspect the new order without X11, then `dbar_restart` to apply changes. Click targets follow the displayed position automatically without recompiling `dwm`. Hidden hardware stays hidden even if its module is enabled. `dbar_refresh` only redraws the current process; it does **not** reload configuration.
+
+${marker}
 
 USB status scans `/sys/block` and follows each block device's sysfs path to identify physical disks on a USB bus. The ` 2` indicator represents **two attached USB storage disks**, regardless of partitions or mount state; internal disks, empty card readers and optical drives are excluded. When no USB disks are connected, the icon and its separator disappear. USB is sampled every 10 seconds. USB passthrough must be enabled for devices attached to a VirtualBox host to become visible in Alpine. No mounting, unmounting or device write operations are performed.
 
