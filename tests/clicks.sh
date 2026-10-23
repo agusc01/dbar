@@ -46,6 +46,8 @@ v volume
 d disk
 t temperature
 h bluetooth
+u usb
+p printer
 k clock
 MODULES
 
