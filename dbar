@@ -50,7 +50,7 @@ append_status_segment() {
     tagged_output="${tagged_output}@{${1}}${status_text}"
 }
 
-# Render CPU, memory, network, battery, playback, disk, temperature, Bluetooth and clock.
+# Render system status and optional hardware segments in compact form.
 render_bar() {
     load_color_mode
     output=""
@@ -128,6 +128,20 @@ render_bar() {
         fi
     fi
 
+    # Count connected storage devices without counting their partitions.
+    if [ "$USB_COUNT" -gt 0 ]; then
+        append_status_segment u "$DBAR_USB_ICON $USB_COUNT" ""
+    fi
+
+    # Keep the printer icon when idle, append the pending-job count if positive.
+    if [ "$PRINTER_COUNT" -gt 0 ]; then
+        printer_text=$DBAR_PRINTER_ICON
+        if [ "$PRINTER_JOBS" -gt 0 ]; then
+            printer_text="$printer_text $PRINTER_JOBS"
+        fi
+        append_status_segment p "$printer_text" ""
+    fi
+
     append_status_segment k "$DBAR_CLOCK_ICON $CLOCK" ""
 }
 
@@ -143,6 +157,8 @@ preview_bar() {
     update_disk
     update_temperature
     update_bluetooth
+    update_usb
+    update_printers
     render_bar
     printf '%s\n' "$output"
 }
@@ -256,6 +272,8 @@ run_bar() {
     . "$DBAR_HOME/modules/disk.sh"
     . "$DBAR_HOME/modules/temperature.sh"
     . "$DBAR_HOME/modules/bluetooth.sh"
+    . "$DBAR_HOME/modules/usb.sh"
+    . "$DBAR_HOME/modules/printers.sh"
 
     update_cpu
     update_memory
@@ -267,6 +285,8 @@ run_bar() {
     update_disk
     update_temperature
     update_bluetooth
+    update_usb
+    update_printers
     previous_output=""
     redraw_requested=1
     seconds=0
@@ -310,6 +330,12 @@ run_bar() {
         fi
         if [ $((seconds % BLUETOOTH_INTERVAL)) -eq 0 ]; then
             update_bluetooth
+        fi
+        if [ $((seconds % USB_INTERVAL)) -eq 0 ]; then
+            update_usb
+        fi
+        if [ $((seconds % PRINTER_INTERVAL)) -eq 0 ]; then
+            update_printers
         fi
     done
 }
@@ -384,7 +410,7 @@ set_colors() {
 # Debug only: identify the clicked segment. Keep the terminal open for inspection.
 debug_click() {
     [ "$#" -eq 2 ] || {
-        echo 'Usage: dbar click {c|m|n|b|l|v|d|t|h|k} {1|2|3}' >&2
+        echo 'Usage: dbar click {c|m|n|b|l|v|d|t|h|u|p|k} {1|2|3}' >&2
         return 2
     }
     case "$1" in
@@ -397,6 +423,8 @@ debug_click() {
         d) clicked_module=disk ;;
         t) clicked_module=temperature ;;
         h) clicked_module=bluetooth ;;
+        u) clicked_module=usb ;;
+        p) clicked_module=printer ;;
         k) clicked_module=clock ;;
         *) echo 'Error: Unknown status segment.' >&2; return 2 ;;
     esac
@@ -435,6 +463,8 @@ case "$operation" in
     . "$DBAR_HOME/modules/disk.sh"
     . "$DBAR_HOME/modules/temperature.sh"
     . "$DBAR_HOME/modules/bluetooth.sh"
+    . "$DBAR_HOME/modules/usb.sh"
+    . "$DBAR_HOME/modules/printers.sh"
         preview_bar
         ;;
     start) start_bar ;;
