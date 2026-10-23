@@ -59,6 +59,27 @@ if printf '%s' "$ordered" | LC_ALL=C grep -q '[[:cntrl:]]'; then
     exit 1
 fi
 
+# Tagged status must follow the same new order, including clickable coordinates.
+. "$DBAR_HOME/lib/colors.sh"
+. "$DBAR_HOME/lib/render.sh"
+. "$DBAR_HOME/modules/clock.sh"
+. "$DBAR_HOME/modules/network.sh"
+. "$DBAR_HOME/modules/memory.sh"
+DBAR_MODULES='clock network memory'
+CLOCK='12:34'
+NETWORK_ICON=$DBAR_NETWORK_OFFLINE_ICON
+MEMORY_PERCENT=25
+render_bar
+case "$tagged_output" in
+    *'@{k}'*'@{n}'*'@{m}'*) ;;
+    *) echo 'Error: Click markers did not follow module order.' >&2; exit 1 ;;
+esac
+case "$tagged_output" in
+    *'@{c}'*|*'@{v}'*)
+        echo 'Error: Disabled modules left clickable status markers.' >&2
+        exit 1 ;;
+esac
+
 # No enabled modules: empty output, and no query should be performed.
 printf "DBAR_MODULES=''\n" > "$DBAR_HOME/config.local.sh"
 empty=$(sh "$DBAR_HOME/dbar" preview)
