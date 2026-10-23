@@ -100,6 +100,8 @@ mkdir -p "$DBAR_PROC_ROOT/net"
 mkdir -p "$DBAR_SYS_ROOT/class/net"
 mkdir -p "$DBAR_SYS_ROOT/class/power_supply"
 export DBAR_HOME DBAR_PROC_ROOT DBAR_SYS_ROOT
+DBAR_LPSTAT=/nonexistent/dbar-lpstat
+export DBAR_LPSTAT
 
 DBAR_TEST_MIXER_MODE=stereo
 DBAR_TEST_DISK_USAGE=62
