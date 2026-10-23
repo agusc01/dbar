@@ -59,3 +59,7 @@ DBAR_USB_ICON=''
 
 PRINTER_INTERVAL=30
 DBAR_PRINTER_ICON=''
+
+# Active modules in display order; an empty list displays nothing.
+# Override this value in the untracked config.local.sh file.
+DBAR_MODULES='cpu memory network battery brightness volume disk temperature bluetooth usb printers clock'
