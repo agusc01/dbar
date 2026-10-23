@@ -46,15 +46,22 @@ sh "$repository/install.sh" >/dev/null
 
 # The bar can preview content before X11 starts.
 preview=$(sh "$repository/dbar" preview)
-printf '%s' "$preview" | grep -q 'CPU --'
-printf '%s' "$preview" | grep -q 'RAM '
+. "$repository/config.sh"
+case "$preview" in
+    *"$DBAR_CPU_ICON --"*"$DBAR_MEMORY_ICON "*"$DBAR_CLOCK_ICON "*)
+        ;;
+    *)
+        echo 'Error: Missing expected status icons.' >&2
+        exit 1
+        ;;
+esac
 
 # Color modes must persist and produce distinct output.
 sh "$repository/dbar" colors-off >/dev/null
 [ "$(cat "$HOME/.config/dbar/color-mode")" = off ]
 monochrome=$(sh "$repository/dbar" preview)
 case "$monochrome" in
-    "CPU -- · RAM "*" · "*)
+    "$DBAR_CPU_ICON --$DBAR_SEPARATOR$DBAR_MEMORY_ICON "*"$DBAR_SEPARATOR$DBAR_CLOCK_ICON "[0-9][0-9]:[0-9][0-9])
         ;;
     *)
         echo 'Error: Unexpected monochrome status formatting.' >&2

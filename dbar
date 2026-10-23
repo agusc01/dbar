@@ -41,12 +41,13 @@ render_bar() {
         cpu_value="${CPU_PERCENT}%"
     fi
 
-    cpu_text="CPU $cpu_value"
-    memory_text="RAM ${MEMORY_PERCENT}%"
-    separator=" · "
+    cpu_text="$DBAR_CPU_ICON $cpu_value"
+    memory_text="$DBAR_MEMORY_ICON ${MEMORY_PERCENT}%"
+    clock_text="$DBAR_CLOCK_ICON $CLOCK"
+    separator=$DBAR_SEPARATOR
 
     if [ "$DBAR_COLOR_MODE" = "off" ]; then
-        output="${cpu_text}${separator}${memory_text}${separator}${CLOCK}"
+        output="${cpu_text}${separator}${memory_text}${separator}${clock_text}"
         return
     fi
 
@@ -56,7 +57,7 @@ render_bar() {
     fi
     memory_color=$(dbar_color_for "$MEMORY_PERCENT" "$MEMORY_WARNING" "$MEMORY_CRITICAL")
 
-    output="${cpu_color}${cpu_text}${DBAR_NORMAL}${separator}${memory_color}${memory_text}${DBAR_NORMAL}${separator}${CLOCK}"
+    output="${cpu_color}${cpu_text}${DBAR_NORMAL}${separator}${memory_color}${memory_text}${DBAR_NORMAL}${separator}${clock_text}"
 }
 
 # Print a single sample without requiring a graphical session.
