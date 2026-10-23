@@ -1,6 +1,6 @@
 # dbar
 
-Lightweight X11 status bar for [agusc01/dwm](https://github.com/agusc01/dwm), written in POSIX `sh` for Alpine Linux. It shows CPU, memory, network, optional battery, ALSA playback volume, root disk usage, optional CPU temperature, Bluetooth status and clock and supports colored or monochrome status. Monochrome mode emits plain text without any embedded color codes.
+Lightweight X11 status bar for [agusc01/dwm](https://github.com/agusc01/dwm), written in POSIX `sh` for Alpine Linux. It shows CPU, memory, network, optional battery, ALSA playback volume, root disk usage, optional CPU temperature, Bluetooth status, optional screen brightness and clock and supports colored or monochrome status. Monochrome mode emits plain text without any embedded color codes.
 
 ## Install
 
@@ -33,10 +33,12 @@ Example: ` 15% | 󰍛 40% | 󰖩 | 󰁹 85% |  14:45` (Wi-Fi and battery) 
 
 Temperature reads CPU-specific sensors from `/sys/class/hwmon` or CPU thermal zones, hides unavailable sensors (as on many virtual machines), and turns orange at 70°C or red at 85°C by default. Bluetooth uses the existing BlueZ installation and is hidden without an adapter. Powered off shows only red `󰂲`; powered on shows green `󰂯`, adding a number only if one or more devices are connected (e.g. `󰂯 2`). Connected means currently connected, not merely paired; BlueZ commands use a two-second timeout each. Temperature refreshes every 10 seconds and Bluetooth every 15 seconds. No additional packages or daemons are required.
 
+Brightness displays as `󰃠 75%` between battery and ALSA volume, using the first readable backlight in `/sys/class/backlight`. It prefers `actual_brightness` and falls back to `brightness`, rounds to a whole percent, and is hidden when no valid backlight is present (as may happen in virtual machines). Low brightness is not an alert, so this segment has no warning colors. It refreshes every 5 seconds. No new packages or daemons are needed.
+
 ## Tests
 
 ```sh
 sh tests/run.sh
 ```
 
-Tests use a mocked `xsetroot` and simulated network routes, power supply entries, ALSA mixer responses, disk usage, CPU sensor files and Bluetooth states, and do not require a graphical session. The tests copy only the required runtime files to isolated temporary directories (never `.git`), clean them up without interactive deletion prompts, and preserve the checkout's `color-mode` setting.
+Tests use a mocked `xsetroot` and simulated network routes, power supply entries, ALSA mixer responses, disk usage, CPU sensor files, Bluetooth states and backlight readings, and do not require a graphical session. The tests copy only the required runtime files to isolated temporary directories (never `.git`), clean them up without interactive deletion prompts, and preserve the checkout's `color-mode` setting.
