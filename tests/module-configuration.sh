@@ -20,7 +20,7 @@ DBAR_LPSTAT=/nonexistent/dbar-lpstat
 DBAR_SYS_ROOT="$fixture/sys"
 DBAR_PROC_ROOT="$fixture/proc"
 mkdir -p "$DBAR_SYS_ROOT/class/net" "$DBAR_SYS_ROOT/block" "$DBAR_PROC_ROOT/net"
-printf '%s\\n' 'Iface Destination Gateway Flags RefCnt Use Metric Mask MTU Window IRTT' \\
+printf '%s\n' 'Iface Destination Gateway Flags RefCnt Use Metric Mask MTU Window IRTT' \
     > "$DBAR_PROC_ROOT/net/route"
 export DBAR_AMIXER DBAR_DF DBAR_LPSTAT DBAR_SYS_ROOT DBAR_PROC_ROOT
 
