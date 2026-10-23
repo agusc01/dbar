@@ -47,7 +47,7 @@ append_status_segment() {
     fi
 }
 
-# Render CPU, memory, network, optional battery, playback, disk and clock.
+# Render CPU, memory, network, battery, playback, disk, temperature, Bluetooth and clock.
 render_bar() {
     load_color_mode
     output=""
@@ -100,6 +100,25 @@ render_bar() {
         append_status_segment "$DBAR_DISK_ICON ${DISK_PERCENT}%" "$disk_color"
     fi
 
+    # Temperature is hidden when no CPU-specific sensor exists.
+    if [ "$TEMPERATURE_C" -ge 0 ]; then
+        temperature_color=$(dbar_color_for "$TEMPERATURE_C" "$TEMPERATURE_WARNING" "$TEMPERATURE_CRITICAL")
+        append_status_segment "$DBAR_TEMPERATURE_ICON ${TEMPERATURE_C}°" "$temperature_color"
+    fi
+
+    # Zero connected devices uses only an icon; add the count when positive.
+    if [ "$BLUETOOTH_PRESENT" -eq 1 ]; then
+        if [ "$BLUETOOTH_POWERED" -eq 1 ]; then
+            bluetooth_text=$DBAR_BLUETOOTH_ON_ICON
+            if [ "$BLUETOOTH_CONNECTED" -gt 0 ]; then
+                bluetooth_text="$bluetooth_text $BLUETOOTH_CONNECTED"
+            fi
+            append_status_segment "$bluetooth_text" "$DBAR_GREEN"
+        else
+            append_status_segment "$DBAR_BLUETOOTH_OFF_ICON" "$DBAR_RED"
+        fi
+    fi
+
     append_status_segment "$DBAR_CLOCK_ICON $CLOCK" ""
 }
 
@@ -112,6 +131,8 @@ preview_bar() {
     update_battery
     update_volume
     update_disk
+    update_temperature
+    update_bluetooth
     render_bar
     printf '%s\n' "$output"
 }
@@ -222,6 +243,8 @@ run_bar() {
     . "$DBAR_HOME/modules/battery.sh"
     . "$DBAR_HOME/modules/volume.sh"
     . "$DBAR_HOME/modules/disk.sh"
+    . "$DBAR_HOME/modules/temperature.sh"
+    . "$DBAR_HOME/modules/bluetooth.sh"
 
     update_cpu
     update_memory
@@ -230,6 +253,8 @@ run_bar() {
     update_battery
     update_volume
     update_disk
+    update_temperature
+    update_bluetooth
     previous_output=""
     redraw_requested=1
     seconds=0
@@ -264,6 +289,12 @@ run_bar() {
         fi
         if [ $((seconds % DISK_INTERVAL)) -eq 0 ]; then
             update_disk
+        fi
+        if [ $((seconds % TEMPERATURE_INTERVAL)) -eq 0 ]; then
+            update_temperature
+        fi
+        if [ $((seconds % BLUETOOTH_INTERVAL)) -eq 0 ]; then
+            update_bluetooth
         fi
     done
 }
@@ -349,6 +380,8 @@ case "$operation" in
     . "$DBAR_HOME/modules/battery.sh"
     . "$DBAR_HOME/modules/volume.sh"
     . "$DBAR_HOME/modules/disk.sh"
+    . "$DBAR_HOME/modules/temperature.sh"
+    . "$DBAR_HOME/modules/bluetooth.sh"
         preview_bar
         ;;
     start) start_bar ;;

@@ -96,6 +96,7 @@ fi
 # Validate network/battery fixtures and rendered status independently of hardware.
 sh "$repository/tests/modules.sh"
 sh "$repository/tests/volume-disk.sh"
+sh "$repository/tests/temperature-bluetooth.sh"
 
 # An earlier session may leave an empty lock and a dead PID behind.
 mkdir -p "$HOME/.cache/dbar/lock"
