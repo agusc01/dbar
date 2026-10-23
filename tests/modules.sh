@@ -24,6 +24,8 @@ DBAR_SYS_ROOT="$fixture/sys"
 export DBAR_PROC_ROOT DBAR_SYS_ROOT
 
 # This fixture only tests network and battery; disable unrelated modules.
+DBAR_LPSTAT=/nonexistent/dbar-lpstat
+export DBAR_LPSTAT
 DBAR_AMIXER=/nonexistent/dbar-amixer
 DBAR_DF=/nonexistent/dbar-df
 export DBAR_AMIXER DBAR_DF

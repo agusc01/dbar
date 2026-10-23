@@ -20,6 +20,8 @@ DBAR_BLUETOOTHCTL="$fixture/bin/bluetoothctl"
 DBAR_AMIXER=/nonexistent/dbar-amixer
 DBAR_DF=/nonexistent/dbar-df
 export DBAR_SYS_ROOT DBAR_PROC_ROOT DBAR_BLUETOOTHCTL DBAR_AMIXER DBAR_DF
+DBAR_LPSTAT=/nonexistent/dbar-lpstat
+export DBAR_LPSTAT
 
 mkdir -p "$fixture/bin"
 mkdir -p "$DBAR_SYS_ROOT/class/hwmon/hwmon0"

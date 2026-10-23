@@ -52,3 +52,10 @@ DBAR_BLUETOOTH_OFF_ICON='󰂲'
 # Display brightness (hidden without a readable backlight device).
 BRIGHTNESS_INTERVAL=5
 DBAR_BRIGHTNESS_ICON='󰃠'
+
+# USB storage disks and configured CUPS printers.
+USB_INTERVAL=10
+DBAR_USB_ICON=''
+
+PRINTER_INTERVAL=30
+DBAR_PRINTER_ICON=''
