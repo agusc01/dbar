@@ -32,25 +32,29 @@ load_color_mode() {
     esac
 }
 
-# Append a nonempty segment, inserting separators only between visible modules.
+# Build untagged preview text and clickable root-window status.
+# Arguments: one-character ID, visible text and color.
 append_status_segment() {
-    [ -n "$1" ] || return 0
+    [ -n "$2" ] || return 0
 
     if [ -n "$output" ]; then
         output="${output}${DBAR_SEPARATOR}"
+        tagged_output="${tagged_output}${DBAR_SEPARATOR}"
     fi
 
-    if [ "$DBAR_COLOR_MODE" = on ] && [ -n "$2" ]; then
-        output="${output}${2}${1}${DBAR_NORMAL}"
-    else
-        output="${output}${1}"
+    status_text=$2
+    if [ "$DBAR_COLOR_MODE" = on ] && [ -n "$3" ]; then
+        status_text="${3}${2}${DBAR_NORMAL}"
     fi
+    output="${output}${status_text}"
+    tagged_output="${tagged_output}@{${1}}${status_text}"
 }
 
 # Render CPU, memory, network, battery, playback, disk, temperature, Bluetooth and clock.
 render_bar() {
     load_color_mode
     output=""
+    tagged_output=""
 
     cpu_value="--"
     cpu_color=""
@@ -58,16 +62,16 @@ render_bar() {
         cpu_value="${CPU_PERCENT}%"
         cpu_color=$(dbar_color_for "$CPU_PERCENT" "$CPU_WARNING" "$CPU_CRITICAL")
     fi
-    append_status_segment "$DBAR_CPU_ICON $cpu_value" "$cpu_color"
+    append_status_segment c "$DBAR_CPU_ICON $cpu_value" "$cpu_color"
 
     memory_color=$(dbar_color_for "$MEMORY_PERCENT" "$MEMORY_WARNING" "$MEMORY_CRITICAL")
-    append_status_segment "$DBAR_MEMORY_ICON ${MEMORY_PERCENT}%" "$memory_color"
+    append_status_segment m "$DBAR_MEMORY_ICON ${MEMORY_PERCENT}%" "$memory_color"
 
     network_color=$DBAR_RED
     if [ "$NETWORK_CONNECTED" -eq 1 ]; then
         network_color=$DBAR_GREEN
     fi
-    append_status_segment "$NETWORK_ICON" "$network_color"
+    append_status_segment n "$NETWORK_ICON" "$network_color"
 
     # No separator or placeholder is emitted on machines without a battery.
     if [ "$BATTERY_PERCENT" -ge 0 ]; then
@@ -82,33 +86,33 @@ render_bar() {
             fi
         fi
 
-        append_status_segment "$BATTERY_ICON ${BATTERY_PERCENT}%" "$battery_color"
+        append_status_segment b "$BATTERY_ICON ${BATTERY_PERCENT}%" "$battery_color"
     fi
 
     # Brightness is informational, so a low value is not a warning.
     if [ "$BRIGHTNESS_PERCENT" -ge 0 ]; then
-        append_status_segment "$DBAR_BRIGHTNESS_ICON ${BRIGHTNESS_PERCENT}%" ""
+        append_status_segment l "$DBAR_BRIGHTNESS_ICON ${BRIGHTNESS_PERCENT}%" ""
     fi
 
     # Muted or zero-volume ALSA playback occupies exactly one icon.
     if [ "$VOLUME_PERCENT" -ge 0 ]; then
         if [ "$VOLUME_MUTED" -eq 1 ]; then
-            append_status_segment "$DBAR_VOLUME_MUTED_ICON" "$DBAR_ORANGE"
+            append_status_segment v "$DBAR_VOLUME_MUTED_ICON" "$DBAR_ORANGE"
         else
-            append_status_segment "$DBAR_VOLUME_ICON ${VOLUME_PERCENT}%" "$DBAR_GREEN"
+            append_status_segment v "$DBAR_VOLUME_ICON ${VOLUME_PERCENT}%" "$DBAR_GREEN"
         fi
     fi
 
     # Disk usage refers to the root filesystem.
     if [ "$DISK_PERCENT" -ge 0 ]; then
         disk_color=$(dbar_color_for "$DISK_PERCENT" "$DISK_WARNING" "$DISK_CRITICAL")
-        append_status_segment "$DBAR_DISK_ICON ${DISK_PERCENT}%" "$disk_color"
+        append_status_segment d "$DBAR_DISK_ICON ${DISK_PERCENT}%" "$disk_color"
     fi
 
     # Temperature is hidden when no CPU-specific sensor exists.
     if [ "$TEMPERATURE_C" -ge 0 ]; then
         temperature_color=$(dbar_color_for "$TEMPERATURE_C" "$TEMPERATURE_WARNING" "$TEMPERATURE_CRITICAL")
-        append_status_segment "$DBAR_TEMPERATURE_ICON ${TEMPERATURE_C}°" "$temperature_color"
+        append_status_segment t "$DBAR_TEMPERATURE_ICON ${TEMPERATURE_C}°" "$temperature_color"
     fi
 
     # Zero connected devices uses only an icon; add the count when positive.
@@ -118,13 +122,13 @@ render_bar() {
             if [ "$BLUETOOTH_CONNECTED" -gt 0 ]; then
                 bluetooth_text="$bluetooth_text $BLUETOOTH_CONNECTED"
             fi
-            append_status_segment "$bluetooth_text" "$DBAR_GREEN"
+            append_status_segment h "$bluetooth_text" "$DBAR_GREEN"
         else
-            append_status_segment "$DBAR_BLUETOOTH_OFF_ICON" "$DBAR_RED"
+            append_status_segment h "$DBAR_BLUETOOTH_OFF_ICON" "$DBAR_RED"
         fi
     fi
 
-    append_status_segment "$DBAR_CLOCK_ICON $CLOCK" ""
+    append_status_segment k "$DBAR_CLOCK_ICON $CLOCK" ""
 }
 
 # Print a single sample without requiring a graphical session.
@@ -269,9 +273,9 @@ run_bar() {
 
     while :; do
         render_bar
-        if [ "$redraw_requested" -eq 1 ] || [ "$output" != "$previous_output" ]; then
-            xsetroot -name "$output"
-            previous_output=$output
+        if [ "$redraw_requested" -eq 1 ] || [ "$tagged_output" != "$previous_output" ]; then
+            xsetroot -name "$tagged_output"
+            previous_output=$tagged_output
             redraw_requested=0
         fi
         # Signals can interrupt sleep; do not let set -e stop the daemon.
@@ -377,6 +381,43 @@ set_colors() {
     fi
 }
 
+# Debug only: identify the clicked segment. Keep the terminal open for inspection.
+debug_click() {
+    [ "$#" -eq 2 ] || {
+        echo 'Usage: dbar click {c|m|n|b|l|v|d|t|h|k} {1|2|3}' >&2
+        return 2
+    }
+    case "$1" in
+        c) clicked_module=cpu ;;
+        m) clicked_module=ram ;;
+        n) clicked_module=wifi ;;
+        b) clicked_module=battery ;;
+        l) clicked_module=brightness ;;
+        v) clicked_module=volume ;;
+        d) clicked_module=disk ;;
+        t) clicked_module=temperature ;;
+        h) clicked_module=bluetooth ;;
+        k) clicked_module=clock ;;
+        *) echo 'Error: Unknown status segment.' >&2; return 2 ;;
+    esac
+    case "$2" in
+        1) clicked_button=left ;;
+        2) clicked_button=middle ;;
+        3) clicked_button=right ;;
+        *) echo 'Error: Unsupported mouse button.' >&2; return 2 ;;
+    esac
+    command -v st >/dev/null 2>&1 || {
+        echo 'Error: st is not on PATH.' >&2
+        return 1
+    }
+    exec st -e sh -c '
+        echo "$1"
+        printf "Mouse button: %s\n" "$2"
+        printf "Press Enter to close..."
+        IFS= read -r response || :
+    ' sh "$clicked_module" "$clicked_button"
+}
+
 # Process control can run without X11; only 'run' and 'start' require a display.
 operation=${1:-help}
 case "$operation" in
@@ -408,10 +449,11 @@ case "$operation" in
         fi
         ;;
     refresh) refresh_bar ;;
+    click) shift; debug_click "$@" ;;
     colors-on) set_colors on ;;
     colors-off) set_colors off ;;
     *)
-        printf 'Usage: dbar {start|stop|restart|status|refresh|colors-on|colors-off|preview}\n' >&2
+        printf 'Usage: dbar {start|stop|restart|status|refresh|colors-on|colors-off|preview|click}\n' >&2
         exit 1
         ;;
 esac
