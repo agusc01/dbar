@@ -10,6 +10,9 @@ update_usb() {
     for usb_disk in "$usb_sys_root"/block/*; do
         [ -r "$usb_disk/size" ] || continue
 
+        # Partitions should never count as separate physical USB drives.
+        [ -r "$usb_disk/partition" ] && continue
+
         IFS= read -r usb_size < "$usb_disk/size" || continue
         case "$usb_size" in
             ''|*[!0-9]*) continue ;;
