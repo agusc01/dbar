@@ -19,6 +19,8 @@ DBAR_PROC_ROOT="$fixture/proc"
 DBAR_AMIXER=/nonexistent/dbar-amixer
 DBAR_DF=/nonexistent/dbar-df
 export DBAR_SYS_ROOT DBAR_PROC_ROOT DBAR_AMIXER DBAR_DF
+DBAR_LPSTAT=/nonexistent/dbar-lpstat
+export DBAR_LPSTAT
 
 mkdir -p "$DBAR_SYS_ROOT/class/backlight"
 mkdir -p "$DBAR_SYS_ROOT/class/net"
