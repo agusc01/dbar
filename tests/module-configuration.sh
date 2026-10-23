@@ -66,6 +66,7 @@ fi
 . "$DBAR_HOME/modules/network.sh"
 . "$DBAR_HOME/modules/memory.sh"
 DBAR_MODULES='clock network memory'
+load_color_mode() { DBAR_COLOR_MODE=off; }
 CLOCK='12:34'
 NETWORK_ICON=$DBAR_NETWORK_OFFLINE_ICON
 MEMORY_PERCENT=25
