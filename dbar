@@ -32,133 +32,31 @@ load_color_mode() {
     esac
 }
 
-# Build untagged preview text and clickable root-window status.
-# Arguments: one-character ID, visible text and color.
-append_status_segment() {
-    [ -n "$2" ] || return 0
+# Source the shared configuration, status renderers and update functions.
+load_bar_components() {
+    . "$DBAR_HOME/lib/modules.sh"
+    load_module_config || return 1
+    . "$DBAR_HOME/lib/colors.sh"
 
-    if [ -n "$output" ]; then
-        output="${output}${DBAR_SEPARATOR}"
-        tagged_output="${tagged_output}${DBAR_SEPARATOR}"
-    fi
+    . "$DBAR_HOME/modules/cpu.sh"
+    . "$DBAR_HOME/modules/memory.sh"
+    . "$DBAR_HOME/modules/clock.sh"
+    . "$DBAR_HOME/modules/network.sh"
+    . "$DBAR_HOME/modules/battery.sh"
+    . "$DBAR_HOME/modules/brightness.sh"
+    . "$DBAR_HOME/modules/volume.sh"
+    . "$DBAR_HOME/modules/disk.sh"
+    . "$DBAR_HOME/modules/temperature.sh"
+    . "$DBAR_HOME/modules/bluetooth.sh"
+    . "$DBAR_HOME/modules/usb.sh"
+    . "$DBAR_HOME/modules/printers.sh"
 
-    status_text=$2
-    if [ "$DBAR_COLOR_MODE" = on ] && [ -n "$3" ]; then
-        status_text="${3}${2}${DBAR_NORMAL}"
-    fi
-    output="${output}${status_text}"
-    tagged_output="${tagged_output}@{${1}}${status_text}"
-}
-
-# Render system status and optional hardware segments in compact form.
-render_bar() {
-    load_color_mode
-    output=""
-    tagged_output=""
-
-    cpu_value="--"
-    cpu_color=""
-    if [ "$CPU_PERCENT" -ge 0 ]; then
-        cpu_value="${CPU_PERCENT}%"
-        cpu_color=$(dbar_color_for "$CPU_PERCENT" "$CPU_WARNING" "$CPU_CRITICAL")
-    fi
-    append_status_segment c "$DBAR_CPU_ICON $cpu_value" "$cpu_color"
-
-    memory_color=$(dbar_color_for "$MEMORY_PERCENT" "$MEMORY_WARNING" "$MEMORY_CRITICAL")
-    append_status_segment m "$DBAR_MEMORY_ICON ${MEMORY_PERCENT}%" "$memory_color"
-
-    network_color=$DBAR_RED
-    if [ "$NETWORK_CONNECTED" -eq 1 ]; then
-        network_color=$DBAR_GREEN
-    fi
-    append_status_segment n "$NETWORK_ICON" "$network_color"
-
-    # No separator or placeholder is emitted on machines without a battery.
-    if [ "$BATTERY_PERCENT" -ge 0 ]; then
-        battery_color=$DBAR_GREEN
-
-        if [ "$BATTERY_STATUS" != Charging ] &&
-           [ "$BATTERY_STATUS" != Full ]; then
-            if [ "$BATTERY_PERCENT" -le "$BATTERY_CRITICAL" ]; then
-                battery_color=$DBAR_RED
-            elif [ "$BATTERY_PERCENT" -le "$BATTERY_WARNING" ]; then
-                battery_color=$DBAR_ORANGE
-            fi
-        fi
-
-        append_status_segment b "$BATTERY_ICON ${BATTERY_PERCENT}%" "$battery_color"
-    fi
-
-    # Brightness is informational, so a low value is not a warning.
-    if [ "$BRIGHTNESS_PERCENT" -ge 0 ]; then
-        append_status_segment l "$DBAR_BRIGHTNESS_ICON ${BRIGHTNESS_PERCENT}%" ""
-    fi
-
-    # Muted or zero-volume ALSA playback occupies exactly one icon.
-    if [ "$VOLUME_PERCENT" -ge 0 ]; then
-        if [ "$VOLUME_MUTED" -eq 1 ]; then
-            append_status_segment v "$DBAR_VOLUME_MUTED_ICON" "$DBAR_ORANGE"
-        else
-            append_status_segment v "$DBAR_VOLUME_ICON ${VOLUME_PERCENT}%" "$DBAR_GREEN"
-        fi
-    fi
-
-    # Disk usage refers to the root filesystem.
-    if [ "$DISK_PERCENT" -ge 0 ]; then
-        disk_color=$(dbar_color_for "$DISK_PERCENT" "$DISK_WARNING" "$DISK_CRITICAL")
-        append_status_segment d "$DBAR_DISK_ICON ${DISK_PERCENT}%" "$disk_color"
-    fi
-
-    # Temperature is hidden when no CPU-specific sensor exists.
-    if [ "$TEMPERATURE_C" -ge 0 ]; then
-        temperature_color=$(dbar_color_for "$TEMPERATURE_C" "$TEMPERATURE_WARNING" "$TEMPERATURE_CRITICAL")
-        append_status_segment t "$DBAR_TEMPERATURE_ICON ${TEMPERATURE_C}°" "$temperature_color"
-    fi
-
-    # Zero connected devices uses only an icon; add the count when positive.
-    if [ "$BLUETOOTH_PRESENT" -eq 1 ]; then
-        if [ "$BLUETOOTH_POWERED" -eq 1 ]; then
-            bluetooth_text=$DBAR_BLUETOOTH_ON_ICON
-            if [ "$BLUETOOTH_CONNECTED" -gt 0 ]; then
-                bluetooth_text="$bluetooth_text $BLUETOOTH_CONNECTED"
-            fi
-            append_status_segment h "$bluetooth_text" "$DBAR_GREEN"
-        else
-            append_status_segment h "$DBAR_BLUETOOTH_OFF_ICON" "$DBAR_RED"
-        fi
-    fi
-
-    # Count connected storage devices without counting their partitions.
-    if [ "$USB_COUNT" -gt 0 ]; then
-        append_status_segment u "$DBAR_USB_ICON $USB_COUNT" ""
-    fi
-
-    # Keep the printer icon when idle, append the pending-job count if positive.
-    if [ "$PRINTER_COUNT" -gt 0 ]; then
-        printer_text=$DBAR_PRINTER_ICON
-        if [ "$PRINTER_JOBS" -gt 0 ]; then
-            printer_text="$printer_text $PRINTER_JOBS"
-        fi
-        append_status_segment p "$printer_text" ""
-    fi
-
-    append_status_segment k "$DBAR_CLOCK_ICON $CLOCK" ""
+    . "$DBAR_HOME/lib/render.sh"
 }
 
 # Print a single sample without requiring a graphical session.
 preview_bar() {
-    update_cpu
-    update_memory
-    update_clock
-    update_network
-    update_battery
-    update_brightness
-    update_volume
-    update_disk
-    update_temperature
-    update_bluetooth
-    update_usb
-    update_printers
+    update_active_modules
     render_bar
     printf '%s\n' "$output"
 }
@@ -238,6 +136,9 @@ run_bar() {
         exit 1
     fi
 
+    # Validate configuration before acquiring the runtime lock or creating a PID.
+    load_bar_components || exit 1
+
     mkdir -vp "$runtime_directory"
     if ! acquire_lock; then
         exit 1
@@ -260,33 +161,7 @@ run_bar() {
     trap 'exit 0' HUP INT TERM
     trap 'redraw_requested=1' USR1
 
-    . "$DBAR_HOME/config.sh"
-    . "$DBAR_HOME/lib/colors.sh"
-    . "$DBAR_HOME/modules/cpu.sh"
-    . "$DBAR_HOME/modules/memory.sh"
-    . "$DBAR_HOME/modules/clock.sh"
-    . "$DBAR_HOME/modules/network.sh"
-    . "$DBAR_HOME/modules/battery.sh"
-    . "$DBAR_HOME/modules/brightness.sh"
-    . "$DBAR_HOME/modules/volume.sh"
-    . "$DBAR_HOME/modules/disk.sh"
-    . "$DBAR_HOME/modules/temperature.sh"
-    . "$DBAR_HOME/modules/bluetooth.sh"
-    . "$DBAR_HOME/modules/usb.sh"
-    . "$DBAR_HOME/modules/printers.sh"
-
-    update_cpu
-    update_memory
-    update_clock
-    update_network
-    update_battery
-    update_brightness
-    update_volume
-    update_disk
-    update_temperature
-    update_bluetooth
-    update_usb
-    update_printers
+    update_active_modules
     previous_output=""
     redraw_requested=1
     seconds=0
@@ -301,42 +176,7 @@ run_bar() {
         # Signals can interrupt sleep; do not let set -e stop the daemon.
         sleep 1 || :
         seconds=$((seconds + 1))
-        if [ $((seconds % CPU_INTERVAL)) -eq 0 ]; then
-            update_cpu
-        fi
-        if [ $((seconds % MEMORY_INTERVAL)) -eq 0 ]; then
-            update_memory
-        fi
-        if [ $((seconds % CLOCK_INTERVAL)) -eq 0 ]; then
-            update_clock
-        fi
-        if [ $((seconds % NETWORK_INTERVAL)) -eq 0 ]; then
-            update_network
-        fi
-        if [ $((seconds % BATTERY_INTERVAL)) -eq 0 ]; then
-            update_battery
-        fi
-        if [ $((seconds % BRIGHTNESS_INTERVAL)) -eq 0 ]; then
-            update_brightness
-        fi
-        if [ $((seconds % VOLUME_INTERVAL)) -eq 0 ]; then
-            update_volume
-        fi
-        if [ $((seconds % DISK_INTERVAL)) -eq 0 ]; then
-            update_disk
-        fi
-        if [ $((seconds % TEMPERATURE_INTERVAL)) -eq 0 ]; then
-            update_temperature
-        fi
-        if [ $((seconds % BLUETOOTH_INTERVAL)) -eq 0 ]; then
-            update_bluetooth
-        fi
-        if [ $((seconds % USB_INTERVAL)) -eq 0 ]; then
-            update_usb
-        fi
-        if [ $((seconds % PRINTER_INTERVAL)) -eq 0 ]; then
-            update_printers
-        fi
+        update_due_modules "$seconds"
     done
 }
 
@@ -451,20 +291,7 @@ operation=${1:-help}
 case "$operation" in
     run) run_bar ;;
     preview)
-        . "$DBAR_HOME/config.sh"
-        . "$DBAR_HOME/lib/colors.sh"
-        . "$DBAR_HOME/modules/cpu.sh"
-        . "$DBAR_HOME/modules/memory.sh"
-        . "$DBAR_HOME/modules/clock.sh"
-    . "$DBAR_HOME/modules/network.sh"
-    . "$DBAR_HOME/modules/battery.sh"
-    . "$DBAR_HOME/modules/brightness.sh"
-    . "$DBAR_HOME/modules/volume.sh"
-    . "$DBAR_HOME/modules/disk.sh"
-    . "$DBAR_HOME/modules/temperature.sh"
-    . "$DBAR_HOME/modules/bluetooth.sh"
-    . "$DBAR_HOME/modules/usb.sh"
-    . "$DBAR_HOME/modules/printers.sh"
+        load_bar_components || exit 1
         preview_bar
         ;;
     start) start_bar ;;
