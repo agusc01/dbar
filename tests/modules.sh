@@ -14,6 +14,11 @@ DBAR_PROC_ROOT="$fixture/proc"
 DBAR_SYS_ROOT="$fixture/sys"
 export DBAR_PROC_ROOT DBAR_SYS_ROOT
 
+# This fixture only tests network and battery; disable unrelated modules.
+DBAR_AMIXER=/nonexistent/dbar-amixer
+DBAR_DF=/nonexistent/dbar-df
+export DBAR_AMIXER DBAR_DF
+
 mkdir -p "$DBAR_PROC_ROOT/net"
 mkdir -p "$DBAR_SYS_ROOT/class/net/enp0s3"
 mkdir -p "$DBAR_SYS_ROOT/class/net/wlan0/wireless"
