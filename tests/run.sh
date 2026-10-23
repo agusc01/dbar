@@ -40,6 +40,10 @@ DISPLAY=:99
 PATH="$temporary_directory/bin:$PATH"
 export HOME DBAR_HOME DBAR_TEST_OUTPUT DISPLAY PATH
 
+# Avoid consulting the host's CUPS service in isolated smoke tests.
+DBAR_LPSTAT=/nonexistent/dbar-lpstat
+export DBAR_LPSTAT
+
 # All executables must parse as POSIX shell.
 for script in "$repository/dbar" "$repository/install.sh" "$repository/config.sh" \
               "$repository"/lib/*.sh "$repository"/modules/*.sh \
@@ -99,6 +103,7 @@ sh "$repository/tests/volume-disk.sh"
 sh "$repository/tests/temperature-bluetooth.sh"
 sh "$repository/tests/brightness.sh"
 sh "$repository/tests/clicks.sh"
+sh "$repository/tests/usb-printers.sh"
 
 # An earlier session may leave an empty lock and a dead PID behind.
 mkdir -p "$HOME/.cache/dbar/lock"
