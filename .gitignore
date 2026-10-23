@@ -1,3 +1,4 @@
 /color-mode
 *.pid
 *.log
+/config.local.sh
