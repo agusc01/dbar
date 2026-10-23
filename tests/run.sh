@@ -47,7 +47,7 @@ export DBAR_LPSTAT
 # All executables must parse as POSIX shell.
 for script in "$repository/dbar" "$repository/install.sh" "$repository/config.sh" \
               "$repository"/lib/*.sh "$repository"/modules/*.sh \
-              "$repository"/commands/*; do
+              "$repository"/commands/* "$repository"/tests/*.sh; do
     sh -n "$script"
 done
 
