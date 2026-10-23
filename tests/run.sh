@@ -97,6 +97,7 @@ fi
 sh "$repository/tests/modules.sh"
 sh "$repository/tests/volume-disk.sh"
 sh "$repository/tests/temperature-bluetooth.sh"
+sh "$repository/tests/brightness.sh"
 
 # An earlier session may leave an empty lock and a dead PID behind.
 mkdir -p "$HOME/.cache/dbar/lock"
