@@ -24,6 +24,10 @@ printf '%s\n' 'Iface Destination Gateway Flags RefCnt Use Metric Mask MTU Window
     > "$DBAR_PROC_ROOT/net/route"
 export DBAR_AMIXER DBAR_DF DBAR_LPSTAT DBAR_SYS_ROOT DBAR_PROC_ROOT
 
+# Assert display order without embedded dwm color control bytes.
+# Color rendering is covered separately by the main smoke suite.
+printf 'off\n' > "$DBAR_HOME/color-mode"
+
 # Without an override, the existing default order is unchanged.
 default_preview=$(sh "$DBAR_HOME/dbar" preview)
 . "$DBAR_HOME/config.sh"
