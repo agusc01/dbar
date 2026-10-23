@@ -47,7 +47,8 @@ export DBAR_LPSTAT
 # All executables must parse as POSIX shell.
 for script in "$repository/dbar" "$repository/install.sh" "$repository/config.sh" \
               "$repository"/lib/*.sh "$repository"/modules/*.sh \
-              "$repository"/commands/* "$repository"/tests/*.sh; do
+              "$repository"/commands/* "$repository"/tests/*.sh \
+              "$source_repository/config.local.example.sh"; do
     sh -n "$script"
 done
 
@@ -104,6 +105,7 @@ sh "$repository/tests/temperature-bluetooth.sh"
 sh "$repository/tests/brightness.sh"
 sh "$repository/tests/clicks.sh"
 sh "$repository/tests/usb-printers.sh"
+sh "$repository/tests/module-configuration.sh"
 
 # An earlier session may leave an empty lock and a dead PID behind.
 mkdir -p "$HOME/.cache/dbar/lock"
