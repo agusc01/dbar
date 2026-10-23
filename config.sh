@@ -48,3 +48,7 @@ DBAR_TEMPERATURE_ICON=''
 BLUETOOTH_INTERVAL=15
 DBAR_BLUETOOTH_ON_ICON='󰂯'
 DBAR_BLUETOOTH_OFF_ICON='󰂲'
+
+# Display brightness (hidden without a readable backlight device).
+BRIGHTNESS_INTERVAL=5
+DBAR_BRIGHTNESS_ICON='󰃠'
