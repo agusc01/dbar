@@ -142,7 +142,8 @@ if sh "$repository/dbar" run >/dev/null 2>&1; then
     exit 1
 fi
 [ "$(cat "$HOME/.cache/dbar/lock/protected")" = preserve ]
-rm -v "$HOME/.cache/dbar/lock/protected"
-rmdir -v "$HOME/.cache/dbar/lock"
+# Suppress only successful verbose cleanup; preserve command failures.
+rm -v "$HOME/.cache/dbar/lock/protected" >/dev/null
+rmdir -v "$HOME/.cache/dbar/lock" >/dev/null
 
 printf '%s\n' 'All dbar smoke tests passed.' 
