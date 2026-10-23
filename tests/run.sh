@@ -61,7 +61,7 @@ sh "$repository/dbar" colors-off >/dev/null
 [ "$(cat "$HOME/.config/dbar/color-mode")" = off ]
 monochrome=$(sh "$repository/dbar" preview)
 case "$monochrome" in
-    "$DBAR_CPU_ICON --$DBAR_SEPARATOR$DBAR_MEMORY_ICON "*"$DBAR_SEPARATOR$DBAR_CLOCK_ICON "[0-9][0-9]:[0-9][0-9])
+    "$DBAR_CPU_ICON --$DBAR_SEPARATOR$DBAR_MEMORY_ICON "*"$DBAR_SEPARATOR"*"$DBAR_CLOCK_ICON "[0-9][0-9]:[0-9][0-9])
         ;;
     *)
         echo 'Error: Unexpected monochrome status formatting.' >&2
@@ -84,6 +84,9 @@ if ! printf '%s' "$colored" | LC_ALL=C grep -q '[[:cntrl:]]'; then
     echo 'Error: Colored mode has no color control bytes.' >&2
     exit 1
 fi
+
+# Validate network/battery fixtures and rendered status independently of hardware.
+sh "$repository/tests/modules.sh"
 
 # An earlier session may leave an empty lock and a dead PID behind.
 mkdir -p "$HOME/.cache/dbar/lock"

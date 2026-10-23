@@ -32,32 +32,60 @@ load_color_mode() {
     esac
 }
 
-# Render concise status values; monochrome mode must contain no color bytes.
+# Append a nonempty segment, inserting separators only between visible modules.
+append_status_segment() {
+    [ -n "$1" ] || return 0
+
+    if [ -n "$output" ]; then
+        output="${output}${DBAR_SEPARATOR}"
+    fi
+
+    if [ "$DBAR_COLOR_MODE" = on ] && [ -n "$2" ]; then
+        output="${output}${2}${1}${DBAR_NORMAL}"
+    else
+        output="${output}${1}"
+    fi
+}
+
+# Render CPU, memory, network, optional battery and clock.
 render_bar() {
     load_color_mode
+    output=""
 
     cpu_value="--"
+    cpu_color=""
     if [ "$CPU_PERCENT" -ge 0 ]; then
         cpu_value="${CPU_PERCENT}%"
-    fi
-
-    cpu_text="$DBAR_CPU_ICON $cpu_value"
-    memory_text="$DBAR_MEMORY_ICON ${MEMORY_PERCENT}%"
-    clock_text="$DBAR_CLOCK_ICON $CLOCK"
-    separator=$DBAR_SEPARATOR
-
-    if [ "$DBAR_COLOR_MODE" = "off" ]; then
-        output="${cpu_text}${separator}${memory_text}${separator}${clock_text}"
-        return
-    fi
-
-    cpu_color=$DBAR_NORMAL
-    if [ "$CPU_PERCENT" -ge 0 ]; then
         cpu_color=$(dbar_color_for "$CPU_PERCENT" "$CPU_WARNING" "$CPU_CRITICAL")
     fi
-    memory_color=$(dbar_color_for "$MEMORY_PERCENT" "$MEMORY_WARNING" "$MEMORY_CRITICAL")
+    append_status_segment "$DBAR_CPU_ICON $cpu_value" "$cpu_color"
 
-    output="${cpu_color}${cpu_text}${DBAR_NORMAL}${separator}${memory_color}${memory_text}${DBAR_NORMAL}${separator}${clock_text}"
+    memory_color=$(dbar_color_for "$MEMORY_PERCENT" "$MEMORY_WARNING" "$MEMORY_CRITICAL")
+    append_status_segment "$DBAR_MEMORY_ICON ${MEMORY_PERCENT}%" "$memory_color"
+
+    network_color=$DBAR_RED
+    if [ "$NETWORK_CONNECTED" -eq 1 ]; then
+        network_color=$DBAR_GREEN
+    fi
+    append_status_segment "$NETWORK_ICON" "$network_color"
+
+    # No separator or placeholder is emitted on machines without a battery.
+    if [ "$BATTERY_PERCENT" -ge 0 ]; then
+        battery_color=$DBAR_GREEN
+
+        if [ "$BATTERY_STATUS" != Charging ] &&
+           [ "$BATTERY_STATUS" != Full ]; then
+            if [ "$BATTERY_PERCENT" -le "$BATTERY_CRITICAL" ]; then
+                battery_color=$DBAR_RED
+            elif [ "$BATTERY_PERCENT" -le "$BATTERY_WARNING" ]; then
+                battery_color=$DBAR_ORANGE
+            fi
+        fi
+
+        append_status_segment "$BATTERY_ICON ${BATTERY_PERCENT}%" "$battery_color"
+    fi
+
+    append_status_segment "$DBAR_CLOCK_ICON $CLOCK" ""
 }
 
 # Print a single sample without requiring a graphical session.
@@ -65,6 +93,8 @@ preview_bar() {
     update_cpu
     update_memory
     update_clock
+    update_network
+    update_battery
     render_bar
     printf '%s\n' "$output"
 }
@@ -171,10 +201,14 @@ run_bar() {
     . "$DBAR_HOME/modules/cpu.sh"
     . "$DBAR_HOME/modules/memory.sh"
     . "$DBAR_HOME/modules/clock.sh"
+    . "$DBAR_HOME/modules/network.sh"
+    . "$DBAR_HOME/modules/battery.sh"
 
     update_cpu
     update_memory
     update_clock
+    update_network
+    update_battery
     previous_output=""
     redraw_requested=1
     seconds=0
@@ -197,6 +231,12 @@ run_bar() {
         fi
         if [ $((seconds % CLOCK_INTERVAL)) -eq 0 ]; then
             update_clock
+        fi
+        if [ $((seconds % NETWORK_INTERVAL)) -eq 0 ]; then
+            update_network
+        fi
+        if [ $((seconds % BATTERY_INTERVAL)) -eq 0 ]; then
+            update_battery
         fi
     done
 }
@@ -278,6 +318,8 @@ case "$operation" in
         . "$DBAR_HOME/modules/cpu.sh"
         . "$DBAR_HOME/modules/memory.sh"
         . "$DBAR_HOME/modules/clock.sh"
+    . "$DBAR_HOME/modules/network.sh"
+    . "$DBAR_HOME/modules/battery.sh"
         preview_bar
         ;;
     start) start_bar ;;
