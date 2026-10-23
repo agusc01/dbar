@@ -98,6 +98,7 @@ sh "$repository/tests/modules.sh"
 sh "$repository/tests/volume-disk.sh"
 sh "$repository/tests/temperature-bluetooth.sh"
 sh "$repository/tests/brightness.sh"
+sh "$repository/tests/clicks.sh"
 
 # An earlier session may leave an empty lock and a dead PID behind.
 mkdir -p "$HOME/.cache/dbar/lock"
@@ -112,6 +113,19 @@ pid_before=$(cat "$HOME/.cache/dbar/dbar.pid")
 pid_after=$(cat "$HOME/.cache/dbar/dbar.pid")
 [ "$pid_before" = "$pid_after" ]
 [ -s "$DBAR_TEST_OUTPUT" ]
+# The window manager receives tagged status, but preview stays marker-free.
+first_status=$(head -n 1 "$DBAR_TEST_OUTPUT")
+case "$first_status" in
+    *'@{c}'*'@{m}'*'@{n}'*'@{k}'*) ;;
+    *)
+        echo 'Error: Root status is missing stable click markers.' >&2
+        exit 1 ;;
+esac
+case "$monochrome" in
+    *'@{'*)
+        echo 'Error: Preview unexpectedly contains click markers.' >&2
+        exit 1 ;;
+esac
 
 # Switching modes must trigger an immediate new root-window status value.
 lines_before=$(wc -l < "$DBAR_TEST_OUTPUT")
