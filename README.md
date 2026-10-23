@@ -37,4 +37,4 @@ Example: ` 15% | 󰍛 40% | 󰖩 | 󰁹 85% |  14:45` (Wi-Fi and battery) 
 sh tests/run.sh
 ```
 
-Tests use a mocked `xsetroot` and simulated network routes, power supply entries, ALSA mixer responses and disk usage, and do not require a graphical session.
+Tests use a mocked `xsetroot` and simulated network routes, power supply entries, ALSA mixer responses and disk usage, and do not require a graphical session. The tests copy only the required runtime files to isolated temporary directories (never `.git`), clean them up without interactive deletion prompts, and preserve the checkout's `color-mode` setting.

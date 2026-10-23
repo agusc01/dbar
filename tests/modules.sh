@@ -2,9 +2,18 @@
 set -eu
 
 # Exercise interface and battery detection with isolated /proc and /sys fixtures.
-DBAR_HOME=${DBAR_HOME:-"$(CDPATH= cd "$(dirname "$0")/.." && pwd)"}
+source_repository=${DBAR_HOME:-"$(CDPATH= cd "$(dirname "$0")/.." && pwd)"}
 fixture=$(mktemp -d)
 trap 'rm -R "$fixture"' 0
+
+# Keep color-mode changes inside the fixture, never the user's checkout.
+DBAR_HOME="$fixture/dbar"
+mkdir -p "$DBAR_HOME"
+cp -v "$source_repository/dbar" "$DBAR_HOME/dbar" >/dev/null
+cp -v "$source_repository/config.sh" "$DBAR_HOME/config.sh" >/dev/null
+cp -Rv "$source_repository/modules" "$DBAR_HOME/modules" >/dev/null
+cp -Rv "$source_repository/lib" "$DBAR_HOME/lib" >/dev/null
+export DBAR_HOME
 
 . "$DBAR_HOME/config.sh"
 . "$DBAR_HOME/modules/network.sh"
@@ -95,7 +104,7 @@ case "$plain" in
         exit 1
         ;;
 esac
-[ "$(printf '%s\n' "$plain" | awk -F ' \| ' '{print NF}')" -eq 5 ] ||
+[ "$(printf '%s\n' "$plain" | awk -F '[|]' '{print NF}')" -eq 5 ] ||
     { echo 'Error: Expected exactly five visible status segments.' >&2; exit 1; }
 if printf '%s' "$plain" | LC_ALL=C grep -q '[[:cntrl:]]'; then
     echo 'Error: Monochrome preview contains control bytes.' >&2
@@ -113,7 +122,7 @@ fi
 printf '0\n' > "$DBAR_SYS_ROOT/class/power_supply/BAT0/present"
 printf 'off\n' > "$DBAR_HOME/color-mode"
 without_battery=$(sh "$DBAR_HOME/dbar" preview)
-[ "$(printf '%s\n' "$without_battery" | awk -F ' \| ' '{print NF}')" -eq 4 ] ||
+[ "$(printf '%s\n' "$without_battery" | awk -F '[|]' '{print NF}')" -eq 4 ] ||
     { echo 'Error: Battery-free preview has an extra segment.' >&2; exit 1; }
 case "$without_battery" in
     *"$DBAR_BATTERY_ICON"*|*"$DBAR_BATTERY_CHARGING_ICON"*)

@@ -8,8 +8,16 @@ trap 'HOME="$temporary_directory/home" DBAR_HOME="$temporary_directory/home/.con
 
 mkdir -p "$temporary_directory/home/.config"
 mkdir -p "$temporary_directory/bin"
-cp -R "$source_repository" "$temporary_directory/home/.config/dbar"
 repository="$temporary_directory/home/.config/dbar"
+mkdir -p "$repository"
+
+# Copy only runtime sources needed by the tests; never copy the .git directory.
+for source_file in dbar install.sh config.sh; do
+    cp -v "$source_repository/$source_file" "$repository/$source_file" >/dev/null
+done
+for source_directory in lib modules commands tests; do
+    cp -Rv "$source_repository/$source_directory" "$repository/$source_directory" >/dev/null
+done
 
 cat > "$temporary_directory/bin/xsetroot" <<'MOCK'
 #!/bin/sh

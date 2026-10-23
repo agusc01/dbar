@@ -87,9 +87,13 @@ update_disk
 [ "$DISK_PERCENT" -eq -1 ] ||
     { echo 'Error: Invalid disk usage was not hidden.' >&2; exit 1; }
 
-# Preview a copied repository to avoid changing the user's color-mode setting.
+# Copy only files used by preview; never include the checkout's .git directory.
 DBAR_HOME="$fixture/dbar"
-cp -R "$source_repository" "$DBAR_HOME"
+mkdir -p "$DBAR_HOME"
+cp -v "$source_repository/dbar" "$DBAR_HOME/dbar" >/dev/null
+cp -v "$source_repository/config.sh" "$DBAR_HOME/config.sh" >/dev/null
+cp -Rv "$source_repository/modules" "$DBAR_HOME/modules" >/dev/null
+cp -Rv "$source_repository/lib" "$DBAR_HOME/lib" >/dev/null
 DBAR_PROC_ROOT="$fixture/proc"
 DBAR_SYS_ROOT="$fixture/sys"
 mkdir -p "$DBAR_PROC_ROOT/net"
