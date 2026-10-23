@@ -85,6 +85,11 @@ render_bar() {
         append_status_segment "$BATTERY_ICON ${BATTERY_PERCENT}%" "$battery_color"
     fi
 
+    # Brightness is informational, so a low value is not a warning.
+    if [ "$BRIGHTNESS_PERCENT" -ge 0 ]; then
+        append_status_segment "$DBAR_BRIGHTNESS_ICON ${BRIGHTNESS_PERCENT}%" ""
+    fi
+
     # Muted or zero-volume ALSA playback occupies exactly one icon.
     if [ "$VOLUME_PERCENT" -ge 0 ]; then
         if [ "$VOLUME_MUTED" -eq 1 ]; then
@@ -129,6 +134,7 @@ preview_bar() {
     update_clock
     update_network
     update_battery
+    update_brightness
     update_volume
     update_disk
     update_temperature
@@ -241,6 +247,7 @@ run_bar() {
     . "$DBAR_HOME/modules/clock.sh"
     . "$DBAR_HOME/modules/network.sh"
     . "$DBAR_HOME/modules/battery.sh"
+    . "$DBAR_HOME/modules/brightness.sh"
     . "$DBAR_HOME/modules/volume.sh"
     . "$DBAR_HOME/modules/disk.sh"
     . "$DBAR_HOME/modules/temperature.sh"
@@ -251,6 +258,7 @@ run_bar() {
     update_clock
     update_network
     update_battery
+    update_brightness
     update_volume
     update_disk
     update_temperature
@@ -283,6 +291,9 @@ run_bar() {
         fi
         if [ $((seconds % BATTERY_INTERVAL)) -eq 0 ]; then
             update_battery
+        fi
+        if [ $((seconds % BRIGHTNESS_INTERVAL)) -eq 0 ]; then
+            update_brightness
         fi
         if [ $((seconds % VOLUME_INTERVAL)) -eq 0 ]; then
             update_volume
@@ -378,6 +389,7 @@ case "$operation" in
         . "$DBAR_HOME/modules/clock.sh"
     . "$DBAR_HOME/modules/network.sh"
     . "$DBAR_HOME/modules/battery.sh"
+    . "$DBAR_HOME/modules/brightness.sh"
     . "$DBAR_HOME/modules/volume.sh"
     . "$DBAR_HOME/modules/disk.sh"
     . "$DBAR_HOME/modules/temperature.sh"
